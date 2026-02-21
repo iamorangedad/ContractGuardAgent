@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ContractGuardAgent - 法务合同对比系统</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ContractGuardAgent</h1>
+            <p class="subtitle">法务合同智能对比系统</p>
+        </header>
+        
+        <main>
+            <div class="upload-section">
+                <h2>合同对比</h2>
+                <p class="description">上传合同原件和修改件，系统将自动识别差异并评估风险</p>
+                
+                <form id="compareForm">
+                    <div class="form-group">
+                        <label for="category">合同类别（可选）</label>
+                        <select id="category" name="category">
+                            <option value="">自动识别</option>
+                            <option value="采购">采购合同</option>
+                            <option value="服务">服务合同</option>
+                            <option value="租赁">租赁合同</option>
+                            <option value="劳动">劳动合同</option>
+                            <option value="保密">保密协议</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="originalText">合同原件</label>
+                        <textarea id="originalText" name="originalText" rows="12" 
+                            placeholder="请粘贴合同原件内容..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="modifiedText">修改件</label>
+                        <textarea id="modifiedText" name="modifiedText" rows="12" 
+                            placeholder="请粘贴修改后的合同内容..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="sampleBtn">示例数据</label>
+                        <button type="button" id="sampleBtn" class="btn btn-secondary">加载示例合同</button>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">开始对比</button>
+                </form>
+            </div>
+            
+            <div id="resultSection" class="result-section" style="display: none;">
+                <h3>对比结果</h3>
+                <div class="task-status">
+                    <span id="statusText">状态: </span>
+                    <span id="statusBadge" class="badge">等待中</span>
+                </div>
+                <p id="statusMessage"></p>
+                <a id="viewResultLink" href="#" class="btn btn-primary" style="display: none;">查看详细结果</a>
+            </div>
+        </main>
+        
+        <footer>
+            <p>Powered by RAG + LangGraph</p>
+        </footer>
+    </div>
+    
+    <script src="/static/app.js"></script>
+</body>
+</html>

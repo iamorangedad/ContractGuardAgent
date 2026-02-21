@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>对比结果 - ContractGuardAgent</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ContractGuardAgent</h1>
+            <p class="subtitle">法务合同智能对比系统</p>
+            <a href="/" class="back-link">返回首页</a>
+        </header>
+        
+        <main>
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>正在分析合同，请稍候...</p>
+            </div>
+            
+            <div id="resultContent" class="result-content" style="display: none;">
+                <div class="task-info">
+                    <span class="badge" id="statusBadge">分析中</span>
+                    <span id="taskId"></span>
+                </div>
+                
+                <div id="summarySection" class="summary-section">
+                    <h2>审查摘要</h2>
+                    <div class="summary-cards">
+                        <div class="summary-card green">
+                            <span class="card-number" id="greenCount">0</span>
+                            <span class="card-label">绿色（通过）</span>
+                        </div>
+                        <div class="summary-card yellow">
+                            <span class="card-number" id="yellowCount">0</span>
+                            <span class="card-label">黄色（需确认）</span>
+                        </div>
+                        <div class="summary-card red">
+                            <span class="card-number" id="redCount">0</span>
+                            <span class="card-label">红色（风险）</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="reviewSection" class="review-section" style="display: none;">
+                    <h2>人工确认</h2>
+                    <p>以下条款需要法务人工确认：</p>
+                    <form id="reviewForm">
+                        <div id="reviewItems"></div>
+                        <button type="submit" class="btn btn-primary">提交审核意见</button>
+                    </form>
+                </div>
+                
+                <div id="reportSection" class="report-section">
+                    <h2>对比报告</h2>
+                    <pre id="finalReport"></pre>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>Powered by RAG + LangGraph</p>
+        </footer>
+    </div>
+    
+    <script src="/static/app.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const taskId = urlParams.get('task_id');
+        
+        if (taskId) {
+            document.getElementById('taskId').textContent = '任务ID: ' + taskId;
+            checkTaskStatus(taskId);
+        } else {
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

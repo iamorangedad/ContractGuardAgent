@@ -1,0 +1,366 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: #333;
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    padding: 30px;
+    text-align: center;
+}
+
+header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+.back-link {
+    display: inline-block;
+    margin-top: 15px;
+    color: #fff;
+    text-decoration: none;
+    padding: 8px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 6px;
+    transition: all 0.3s;
+}
+
+.back-link:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+main {
+    padding: 30px;
+}
+
+h2 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+}
+
+.description {
+    color: #666;
+    margin-bottom: 25px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #444;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.form-group textarea {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.btn {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: #f0f0f0;
+    color: #666;
+}
+
+.btn-secondary:hover {
+    background: #e0e0e0;
+}
+
+.result-section {
+    margin-top: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.task-status {
+    margin: 15px 0;
+}
+
+.badge {
+    display: inline-block;
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    background: #6c757d;
+    color: #fff;
+}
+
+.badge.green {
+    background: #28a745;
+}
+
+.badge.yellow {
+    background: #ffc107;
+    color: #333;
+}
+
+.badge.red {
+    background: #dc3545;
+}
+
+.badge.pending {
+    background: #6c757d;
+}
+
+.badge.in_progress {
+    background: #17a2b8;
+}
+
+.badge.waiting_human {
+    background: #ffc107;
+    color: #333;
+}
+
+.badge.completed {
+    background: #28a745;
+}
+
+.badge.failed {
+    background: #dc3545;
+}
+
+.loading {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.result-content {
+    animation: fadeIn 0.5s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.task-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.summary-section {
+    margin-bottom: 30px;
+}
+
+.summary-cards {
+    display: flex;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.summary-card {
+    flex: 1;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    color: #fff;
+}
+
+.summary-card.green {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+}
+
+.summary-card.yellow {
+    background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+}
+
+.summary-card.red {
+    background: linear-gradient(135deg, #dc3545 0%, #e74c3c 100%);
+}
+
+.card-number {
+    display: block;
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+
+.card-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.review-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #fff3cd;
+    border-radius: 10px;
+    border: 1px solid #ffc107;
+}
+
+.review-item {
+    background: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border-left: 4px solid #ffc107;
+}
+
+.review-item.red {
+    border-left-color: #dc3545;
+}
+
+.review-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.review-item-title {
+    font-weight: 600;
+    color: #333;
+}
+
+.review-item-content {
+    margin: 10px 0;
+    font-size: 14px;
+    color: #666;
+}
+
+.review-item-content p {
+    margin: 5px 0;
+}
+
+.review-item-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.review-item-actions label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+}
+
+.review-item textarea {
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.report-section {
+    margin-top: 30px;
+}
+
+.report-section pre {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+footer {
+    background: #f8f9fa;
+    padding: 20px;
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+}
+
+@media (max-width: 600px) {
+    .summary-cards {
+        flex-direction: column;
+    }
+    
+    header h1 {
+        font-size: 1.8rem;
+    }
+}
