@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: contract-guard-config
+  namespace: contract-guard
+data:
+  config.yaml: |
+    app:
+      host: "0.0.0.0"
+      port: 8000
+      debug: false
+    database:
+      path: "/data/contracts.db"
+    llm:
+      provider: "ollama"
+      model: "llama3.2"
+      temperature: 0.3
+      base_url: "http://ollama:11434"
+      use_llm: true
+    embeddings:
+      model: "nomic-embed-text"
+      use_embeddings: false
+    task:
+      max_retries: 3
+      retry_delay: 2
+    logging:
+      level: "INFO"
+      format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
