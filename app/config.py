@@ -15,9 +15,11 @@ default_config = {
         "path": "app/data/contracts.db"
     },
     "llm": {
-        "model": "gpt-4o-mini",
+        "provider": "ollama",
+        "model": "llama3.2",
         "temperature": 0.3,
-        "use_llm": False
+        "base_url": "http://localhost:11434",
+        "use_llm": True
     },
     "embeddings": {
         "model": "text-embedding-3-small",
