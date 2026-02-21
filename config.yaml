@@ -1,0 +1,24 @@
+app:
+  host: "0.0.0.0"
+  port: 8000
+  debug: false
+
+database:
+  path: "app/data/contracts.db"
+
+llm:
+  model: "gpt-4o-mini"
+  temperature: 0.3
+  use_llm: false
+
+embeddings:
+  model: "text-embedding-3-small"
+  use_embeddings: false
+
+task:
+  max_retries: 3
+  retry_delay: 2
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

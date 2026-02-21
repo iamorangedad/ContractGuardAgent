@@ -5,5 +5,7 @@ sqlalchemy
 aiosqlite
 langgraph
 langchain-core
+langchain-openai
+langchain-community
 pydantic
 python-dotenv

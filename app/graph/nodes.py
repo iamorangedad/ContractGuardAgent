@@ -1,3 +1,4 @@
+import os
 import re
 import difflib
 from typing import List, Dict, Any
@@ -69,11 +70,37 @@ def node_evaluator(state: ContractReviewState) -> ContractReviewState:
     differences = state.get("differences", [])
     playbook_rules = state.get("playbook_rules", [])
     
+    use_llm = os.getenv("USE_LLM", "false").lower() == "true"
+    
     evaluations = []
     
     for idx, diff in enumerate(differences):
         modified_text = diff.get("modified_section", "")
         original_text = diff.get("original_section", "")
+        change_type = diff.get("change_type", "modified")
+        
+        if use_llm:
+            try:
+                from app.services.llm import get_llm_service
+                llm = get_llm_service()
+                llm_result = llm.analyze_contract_difference(
+                    original_section=original_text,
+                    modified_section=modified_text,
+                    change_type=change_type,
+                    playbook_rules=playbook_rules
+                )
+                
+                evaluations.append({
+                    "id": idx,
+                    "difference": diff,
+                    "risk_level": llm_result["risk_level"],
+                    "matched_rule": llm_result.get("matched_rule"),
+                    "suggestion": llm_result["suggestion"],
+                    "explanation": llm_result["explanation"]
+                })
+                continue
+            except Exception as e:
+                pass
         
         best_match_rule = None
         best_score = 0
@@ -148,6 +175,19 @@ def node_human_loop(state: ContractReviewState) -> ContractReviewState:
 def node_finalizer(state: ContractReviewState) -> ContractReviewState:
     evaluations = state.get("evaluations", [])
     human_reviews = state.get("human_reviews", [])
+    
+    use_llm = os.getenv("USE_LLM", "false").lower() == "true"
+    
+    if use_llm and evaluations:
+        try:
+            from app.services.llm import get_llm_service
+            llm = get_llm_service()
+            final_report = llm.generate_final_report(evaluations, human_reviews)
+            state["final_report"] = final_report
+            state["status"] = "completed"
+            return state
+        except Exception as e:
+            pass
     
     review_map = {r["evaluation_id"]: r for r in human_reviews}
     

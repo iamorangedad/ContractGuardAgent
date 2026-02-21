@@ -67,44 +67,94 @@ document.getElementById('sampleBtn')?.addEventListener('click', function() {
     document.getElementById('modifiedText').value = sampleModified;
 });
 
+document.querySelectorAll('input[name="uploadMode"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        if (this.value === 'text') {
+            document.getElementById('textInputMode').style.display = 'block';
+            document.getElementById('fileInputMode').style.display = 'none';
+        } else {
+            document.getElementById('textInputMode').style.display = 'none';
+            document.getElementById('fileInputMode').style.display = 'block';
+        }
+    });
+});
+
 document.getElementById('compareForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     
-    const originalText = document.getElementById('originalText').value.trim();
-    const modifiedText = document.getElementById('modifiedText').value.trim();
+    const uploadMode = document.querySelector('input[name="uploadMode"]:checked').value;
     const category = document.getElementById('category').value || null;
     
-    if (!originalText || !modifiedText) {
-        alert('请填写合同原件和修改件内容');
-        return;
-    }
-    
-    const formData = {
-        original_text: originalText,
-        modified_text: modifiedText,
-        category: category
-    };
-    
-    try {
-        const response = await fetch(API_BASE + '/api/contracts/compare', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
-        });
+    if (uploadMode === 'file') {
+        const originalFile = document.getElementById('originalFile').files[0];
+        const modifiedFile = document.getElementById('modifiedFile').files[0];
         
-        if (!response.ok) {
-            throw new Error('请求失败');
+        if (!originalFile || !modifiedFile) {
+            alert('请上传两个合同文件');
+            return;
         }
         
-        const result = await response.json();
+        const formData = new FormData();
+        formData.append('original_file', originalFile);
+        formData.append('modified_file', modifiedFile);
+        if (category) {
+            formData.append('category', category);
+        }
         
-        document.getElementById('resultSection').style.display = 'block';
-        updateTaskStatus(result.task_id);
+        try {
+            const response = await fetch(API_BASE + '/api/contracts/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error('请求失败');
+            }
+            
+            const result = await response.json();
+            
+            document.getElementById('resultSection').style.display = 'block';
+            updateTaskStatus(result.task_id);
+            
+        } catch (error) {
+            alert('提交失败: ' + error.message);
+        }
+    } else {
+        const originalText = document.getElementById('originalText').value.trim();
+        const modifiedText = document.getElementById('modifiedText').value.trim();
         
-    } catch (error) {
-        alert('提交失败: ' + error.message);
+        if (!originalText || !modifiedText) {
+            alert('请填写合同原件和修改件内容');
+            return;
+        }
+        
+        const formData = {
+            original_text: originalText,
+            modified_text: modifiedText,
+            category: category
+        };
+        
+        try {
+            const response = await fetch(API_BASE + '/api/contracts/compare', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            if (!response.ok) {
+                throw new Error('请求失败');
+            }
+            
+            const result = await response.json();
+            
+            document.getElementById('resultSection').style.display = 'block';
+            updateTaskStatus(result.task_id);
+            
+        } catch (error) {
+            alert('提交失败: ' + error.message);
+        }
     }
 });
 
