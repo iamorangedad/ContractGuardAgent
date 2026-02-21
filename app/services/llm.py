@@ -1,18 +1,23 @@
 import os
 from typing import Optional, List, Dict, Any
-from langchain_openai import ChatOpenAI
+from langchain_community.chat_models import ChatOllama
 from langchain_core.messages import HumanMessage, SystemMessage
 
+from app.config import get_config
+
 class LLMService:
-    def __init__(self, model: str = "gpt-4o-mini", temperature: float = 0.3):
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError("OPENAI_API_KEY environment variable is not set")
+    def __init__(self, model: str = None, temperature: float = None, base_url: str = None):
+        config = get_config()
+        llm_config = config.get("llm", {})
         
-        self.llm = ChatOpenAI(
-            model=model,
-            temperature=temperature,
-            api_key=api_key
+        self.model = model or llm_config.get("model", "llama3.2")
+        self.temperature = temperature or llm_config.get("temperature", 0.3)
+        self.base_url = base_url or llm_config.get("base_url", "http://localhost:11434")
+        
+        self.llm = ChatOllama(
+            model=self.model,
+            temperature=self.temperature,
+            base_url=self.base_url
         )
         
         self.system_prompt = """你是一位专业的法务合同审查专家。你的职责是：
@@ -66,13 +71,17 @@ class LLMService:
             response = self.llm.invoke(messages)
             content = response.content
             
-            if content.startswith("```json"):
-                content = content[7:]
-            if content.startswith("```"):
-                content = content[3:]
-            if content.endswith("```"):
-                content = content[:-3]
-            content = content.strip()
+            if isinstance(content, list):
+                content = content[0].get("text", str(content)) if content else str(content)
+            
+            if isinstance(content, str):
+                if content.startswith("```json"):
+                    content = content[7:]
+                if content.startswith("```"):
+                    content = content[3:]
+                if content.endswith("```"):
+                    content = content[:-3]
+                content = content.strip()
             
             import json
             result = json.loads(content)
