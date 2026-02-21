@@ -71,6 +71,23 @@ def init_db():
         END
     """)
     
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS tasks (
+            task_id TEXT PRIMARY KEY,
+            status TEXT NOT NULL DEFAULT 'pending',
+            original_text TEXT NOT NULL,
+            modified_text TEXT NOT NULL,
+            category TEXT,
+            differences TEXT,
+            evaluations TEXT,
+            human_reviews TEXT,
+            final_report TEXT,
+            error TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    
     conn.commit()
     
     cursor.execute("SELECT COUNT(*) FROM templates")
@@ -367,6 +384,83 @@ def get_all_playbook_rules(category: str = None) -> list:
     results = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return results
+
+import json
+
+def save_task(task_id: str, task_data: dict) -> None:
+    db_path = get_db_path()
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        INSERT OR REPLACE INTO tasks 
+        (task_id, status, original_text, modified_text, category, 
+         differences, evaluations, human_reviews, final_report, error, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    """, (
+        task_id,
+        task_data.get("status", "pending"),
+        task_data.get("original_text", ""),
+        task_data.get("modified_text", ""),
+        task_data.get("category"),
+        json.dumps(task_data.get("differences", [])),
+        json.dumps(task_data.get("evaluations", [])),
+        json.dumps(task_data.get("human_reviews", [])),
+        task_data.get("final_report"),
+        task_data.get("error")
+    ))
+    
+    conn.commit()
+    conn.close()
+
+def get_task(task_id: str) -> Optional[dict]:
+    db_path = get_db_path()
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM tasks WHERE task_id = ?", (task_id,))
+    row = cursor.fetchone()
+    conn.close()
+    
+    if not row:
+        return None
+    
+    task = dict(row)
+    task["differences"] = json.loads(task.get("differences", "[]"))
+    task["evaluations"] = json.loads(task.get("evaluations", "[]"))
+    task["human_reviews"] = json.loads(task.get("human_reviews", "[]"))
+    return task
+
+def update_task_status(task_id: str, status: str, **kwargs) -> None:
+    db_path = get_db_path()
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    update_fields = ["status = ?", "updated_at = CURRENT_TIMESTAMP"]
+    params = [status]
+    
+    if "differences" in kwargs:
+        update_fields.append("differences = ?")
+        params.append(json.dumps(kwargs["differences"]))
+    if "evaluations" in kwargs:
+        update_fields.append("evaluations = ?")
+        params.append(json.dumps(kwargs["evaluations"]))
+    if "human_reviews" in kwargs:
+        update_fields.append("human_reviews = ?")
+        params.append(json.dumps(kwargs["human_reviews"]))
+    if "final_report" in kwargs:
+        update_fields.append("final_report = ?")
+        params.append(kwargs["final_report"])
+    if "error" in kwargs:
+        update_fields.append("error = ?")
+        params.append(kwargs["error"])
+    
+    params.append(task_id)
+    
+    cursor.execute(f"UPDATE tasks SET {', '.join(update_fields)} WHERE task_id = ?", params)
+    conn.commit()
+    conn.close()
 
 if __name__ == "__main__":
     init_db()
