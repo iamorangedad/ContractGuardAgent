@@ -1,19 +1,25 @@
 import uuid
 import asyncio
-from typing import Dict
-from fastapi import APIRouter, HTTPException
+import logging
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from fastapi.responses import JSONResponse
+from typing import Optional
 from app.models.schemas import ContractUpload, ContractTask, TaskStatus, ReviewSubmit
+from app.rag.db import save_task, get_task, update_task_status
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/contracts", tags=["contracts"])
 
-tasks_store: Dict[str, Dict] = {}
+MAX_RETRIES = 3
+RETRY_DELAY = 2
 
 @router.post("/compare", response_model=TaskStatus)
 async def compare_contracts(contract: ContractUpload):
     task_id = str(uuid.uuid4())
     
-    tasks_store[task_id] = {
+    task_data = {
         "task_id": task_id,
         "status": "pending",
         "original_text": contract.original_text,
@@ -23,10 +29,13 @@ async def compare_contracts(contract: ContractUpload):
         "evaluations": [],
         "human_reviews": [],
         "final_report": None,
-        "created_at": None
+        "error": None
     }
     
-    asyncio.create_task(run_review_task(task_id, contract))
+    save_task(task_id, task_data)
+    logger.info(f"Task {task_id} created")
+    
+    asyncio.create_task(run_review_task_with_retry(task_id, contract))
     
     return TaskStatus(
         task_id=task_id,
@@ -34,38 +43,50 @@ async def compare_contracts(contract: ContractUpload):
         message="任务已创建，正在处理中"
     )
 
-async def run_review_task(task_id: str, contract: ContractUpload):
+async def run_review_task_with_retry(task_id: str, contract: ContractUpload, retry_count: int = 0):
     from app.graph.workflow import run_contract_review
-    from app.rag.db import init_db
-    
-    init_db()
     
     try:
-        tasks_store[task_id]["status"] = "in_progress"
+        update_task_status(task_id, "in_progress")
+        logger.info(f"Task {task_id} started processing (attempt {retry_count + 1})")
+        
+        category = contract.category if contract.category else ""
         
         result = run_contract_review(
             task_id=task_id,
             original_text=contract.original_text,
             modified_text=contract.modified_text,
-            category=contract.category
+            category=category
         )
         
-        tasks_store[task_id]["status"] = result["status"]
-        tasks_store[task_id]["differences"] = result.get("differences", [])
-        tasks_store[task_id]["evaluations"] = result.get("evaluations", [])
-        tasks_store[task_id]["human_reviews"] = result.get("human_reviews", [])
-        tasks_store[task_id]["final_report"] = result.get("final_report")
+        update_task_status(
+            task_id,
+            result["status"],
+            differences=result.get("differences", []),
+            evaluations=result.get("evaluations", []),
+            human_reviews=result.get("human_reviews", []),
+            final_report=result.get("final_report")
+        )
+        logger.info(f"Task {task_id} completed with status: {result['status']}")
         
     except Exception as e:
-        tasks_store[task_id]["status"] = "failed"
-        tasks_store[task_id]["error"] = str(e)
+        logger.error(f"Task {task_id} failed: {str(e)}")
+        
+        if retry_count < MAX_RETRIES - 1:
+            logger.info(f"Retrying task {task_id} in {RETRY_DELAY} seconds...")
+            await asyncio.sleep(RETRY_DELAY)
+            await run_review_task_with_retry(task_id, contract, retry_count + 1)
+        else:
+            logger.error(f"Task {task_id} failed after {MAX_RETRIES} attempts")
+            update_task_status(task_id, "failed", error=str(e))
 
 @router.get("/status/{task_id}", response_model=TaskStatus)
 async def get_task_status(task_id: str):
-    if task_id not in tasks_store:
+    task = get_task(task_id)
+    
+    if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     
-    task = tasks_store[task_id]
     return TaskStatus(
         task_id=task["task_id"],
         status=task["status"],
@@ -84,18 +105,40 @@ def get_status_message(status: str) -> str:
 
 @router.get("/result/{task_id}", response_model=ContractTask)
 async def get_task_result(task_id: str):
-    if task_id not in tasks_store:
+    task = get_task(task_id)
+    
+    if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     
-    task = tasks_store[task_id]
     return ContractTask(**task)
+
+@router.post("/retry/{task_id}")
+async def retry_task(task_id: str):
+    task = get_task(task_id)
+    
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    if task["status"] != "failed":
+        raise HTTPException(status_code=400, detail="Only failed tasks can be retried")
+    
+    contract = ContractUpload(
+        original_text=task["original_text"],
+        modified_text=task["modified_text"],
+        category=task.get("category")
+    )
+    
+    update_task_status(task_id, "pending")
+    asyncio.create_task(run_review_task_with_retry(task_id, contract))
+    
+    return {"message": "Task retry initiated", "task_id": task_id}
 
 @router.post("/review")
 async def submit_human_review(review: ReviewSubmit):
-    if review.task_id not in tasks_store:
-        raise HTTPException(status_code=404, detail="Task not found")
+    task = get_task(review.task_id)
     
-    task = tasks_store[review.task_id]
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
     
     if task["status"] != "waiting_human":
         raise HTTPException(status_code=400, detail="Task is not waiting for human review")
@@ -109,7 +152,8 @@ async def submit_human_review(review: ReviewSubmit):
             "comment": r.comment
         })
     
-    task["human_reviews"] = reviews_list
+    update_task_status(review.task_id, "in_progress", human_reviews=reviews_list)
+    logger.info(f"Human review submitted for task {review.task_id}")
     
     from app.graph.workflow import run_contract_review
     
@@ -117,10 +161,71 @@ async def submit_human_review(review: ReviewSubmit):
         task_id=task["task_id"],
         original_text=task["original_text"],
         modified_text=task["modified_text"],
-        category=task.get("category")
+        category=task.get("category") or ""
     )
     
-    task["status"] = result["status"]
-    task["final_report"] = result.get("final_report")
+    update_task_status(
+        review.task_id,
+        result["status"],
+        final_report=result.get("final_report")
+    )
     
     return {"message": "Review submitted successfully", "task_id": review.task_id}
+
+@router.post("/upload")
+async def upload_contracts(
+    original_file: Optional[UploadFile] = File(None),
+    modified_file: Optional[UploadFile] = File(None),
+    category: Optional[str] = Form(None)
+):
+    original_text = ""
+    modified_text = ""
+    
+    if original_file:
+        content = await original_file.read()
+        try:
+            original_text = content.decode("utf-8")
+        except UnicodeDecodeError:
+            original_text = content.decode("gbk", errors="ignore")
+    
+    if modified_file:
+        content = await modified_file.read()
+        try:
+            modified_text = content.decode("utf-8")
+        except UnicodeDecodeError:
+            modified_text = content.decode("gbk", errors="ignore")
+    
+    if not original_text or not modified_text:
+        raise HTTPException(status_code=400, detail="请提供两个合同文件")
+    
+    contract = ContractUpload(
+        original_text=original_text,
+        modified_text=modified_text,
+        category=category
+    )
+    
+    task_id = str(uuid.uuid4())
+    
+    task_data = {
+        "task_id": task_id,
+        "status": "pending",
+        "original_text": contract.original_text,
+        "modified_text": contract.modified_text,
+        "category": contract.category,
+        "differences": [],
+        "evaluations": [],
+        "human_reviews": [],
+        "final_report": None,
+        "error": None
+    }
+    
+    save_task(task_id, task_data)
+    logger.info(f"Task {task_id} created from file upload")
+    
+    asyncio.create_task(run_review_task_with_retry(task_id, contract))
+    
+    return TaskStatus(
+        task_id=task_id,
+        status="pending",
+        message="任务已创建，正在处理中"
+    )
