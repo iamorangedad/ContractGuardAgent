@@ -32,15 +32,37 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="originalText">合同原件</label>
-                        <textarea id="originalText" name="originalText" rows="12" 
-                            placeholder="请粘贴合同原件内容..."></textarea>
+                        <label>上传方式</label>
+                        <div class="upload-mode">
+                            <label><input type="radio" name="uploadMode" value="text" checked> 文本输入</label>
+                            <label><input type="radio" name="uploadMode" value="file"> 文件上传</label>
+                        </div>
                     </div>
                     
-                    <div class="form-group">
-                        <label for="modifiedText">修改件</label>
-                        <textarea id="modifiedText" name="modifiedText" rows="12" 
-                            placeholder="请粘贴修改后的合同内容..."></textarea>
+                    <div id="textInputMode">
+                        <div class="form-group">
+                            <label for="originalText">合同原件</label>
+                            <textarea id="originalText" name="originalText" rows="12" 
+                                placeholder="请粘贴合同原件内容..."></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="modifiedText">修改件</label>
+                            <textarea id="modifiedText" name="modifiedText" rows="12" 
+                                placeholder="请粘贴修改后的合同内容..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <div id="fileInputMode" style="display: none;">
+                        <div class="form-group">
+                            <label for="originalFile">合同原件文件 (.txt, .docx, .pdf)</label>
+                            <input type="file" id="originalFile" accept=".txt,.docx,.pdf">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="modifiedFile">修改件文件 (.txt, .docx, .pdf)</label>
+                            <input type="file" id="modifiedFile" accept=".txt,.docx,.pdf">
+                        </div>
                     </div>
                     
                     <div class="form-group">
