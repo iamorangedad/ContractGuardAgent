@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: contract-guard
+  namespace: contract-guard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: contract-guard
+  template:
+    metadata:
+      labels:
+        app: contract-guard
+    spec:
+      containers:
+        - name: contract-guard
+          image: contract-guard:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+          volumeMounts:
+            - name: config
+              mountPath: /app/config.yaml
+              subPath: config.yaml
+            - name: db-data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: config
+          configMap:
+            name: contract-guard-config
+        - name: db-data
+          persistentVolumeClaim:
+            claimName: contract-guard-db
