@@ -18,3 +18,7 @@ class ContractReviewState(TypedDict):
     
     final_report: Optional[str]
     error: Optional[str]
+    
+    review_round: int
+    max_review_rounds: int
+    continue_review: bool

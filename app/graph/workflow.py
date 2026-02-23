@@ -7,6 +7,11 @@ def should_need_human(state: ContractReviewState) -> str:
         return "need_human"
     return "no_human"
 
+def should_continue_review(state: ContractReviewState) -> str:
+    if state.get("continue_review", False):
+        return "continue"
+    return "finish"
+
 def build_workflow() -> StateGraph:
     workflow = StateGraph(ContractReviewState)
     
@@ -30,7 +35,15 @@ def build_workflow() -> StateGraph:
         }
     )
     
-    workflow.add_edge("human_loop", "finalizer")
+    workflow.add_conditional_edges(
+        "human_loop",
+        should_continue_review,
+        {
+            "continue": "evaluator",
+            "finish": "finalizer"
+        }
+    )
+    
     workflow.add_edge("finalizer", END)
     
     return workflow
@@ -51,7 +64,10 @@ def run_contract_review(task_id: str, original_text: str, modified_text: str, ca
         "human_reviews": [],
         "needs_human_review": False,
         "final_report": None,
-        "error": None
+        "error": None,
+        "review_round": 0,
+        "max_review_rounds": 3,
+        "continue_review": False
     }
     
     result = contract_review_graph.invoke(initial_state)
