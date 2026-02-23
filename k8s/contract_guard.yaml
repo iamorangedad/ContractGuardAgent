@@ -1,0 +1,138 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: contract-guard
+  labels:
+    app: contract-guard
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: contract-guard-config
+  namespace: contract-guard
+data:
+  config.yaml: |
+    app:
+      host: "0.0.0.0"
+      port: 8000
+      debug: false
+    database:
+      path: "/data/contracts.db"
+    llm:
+      provider: "ollama"
+      model: "qwen3:0.6b"
+      temperature: 0.3
+      base_url: "http://10.0.0.55:11434"
+      use_llm: true
+    embeddings:
+      model: "nomic-embed-text"
+      use_embeddings: false
+    task:
+      max_retries: 3
+      retry_delay: 2
+    logging:
+      level: "INFO"
+      format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: contract-guard-db
+  namespace: contract-guard
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: standard
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: contract-guard
+  namespace: contract-guard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: contract-guard
+  template:
+    metadata:
+      labels:
+        app: contract-guard
+    spec:
+      containers:
+        - name: contract-guard
+          image: contract-guard:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+          volumeMounts:
+            - name: config
+              mountPath: /app/config.yaml
+              subPath: config.yaml
+            - name: db-data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: config
+          configMap:
+            name: contract-guard-config
+        - name: db-data
+          persistentVolumeClaim:
+            claimName: contract-guard-db
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: contract-guard
+  namespace: contract-guard
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8000
+      protocol: TCP
+      name: http
+  selector:
+    app: contract-guard
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: contract-guard-ingress
+  namespace: contract-guard
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+spec:
+  rules:
+    - host: contract-guard.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: contract-guard
+                port:
+                  number: 80
