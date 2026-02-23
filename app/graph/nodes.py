@@ -159,8 +159,19 @@ def node_evaluator(state: ContractReviewState) -> ContractReviewState:
     
     state["evaluations"] = evaluations
     
+    review_round = state.get("review_round", 0)
+    max_rounds = state.get("max_review_rounds", 3)
+    
     has_yellow_or_red = any(e["risk_level"] in ["yellow", "red"] for e in evaluations)
-    state["needs_human_review"] = has_yellow_or_red
+    
+    if has_yellow_or_red:
+        if review_round >= max_rounds:
+            state["needs_human_review"] = False
+            state["continue_review"] = False
+        else:
+            state["needs_human_review"] = True
+    else:
+        state["needs_human_review"] = False
     
     if has_yellow_or_red:
         state["status"] = "waiting_human"
@@ -170,6 +181,30 @@ def node_evaluator(state: ContractReviewState) -> ContractReviewState:
     return state
 
 def node_human_loop(state: ContractReviewState) -> ContractReviewState:
+    evaluations = state.get("evaluations", [])
+    human_reviews = state.get("human_reviews", [])
+    review_round = state.get("review_round", 0)
+    max_rounds = state.get("max_review_rounds", 3)
+    
+    pending_items = [e for e in evaluations if e.get("risk_level") in ["yellow", "red"]]
+    
+    unapproved_items = []
+    for e in pending_items:
+        review = next((r for r in human_reviews if r.get("evaluation_id") == e.get("id")), None)
+        if review is None:
+            unapproved_items.append(e)
+        elif not review.get("approved", False):
+            unapproved_items.append(e)
+    
+    if not unapproved_items:
+        state["continue_review"] = False
+    elif review_round >= max_rounds:
+        state["continue_review"] = False
+    else:
+        state["continue_review"] = True
+    
+    state["review_round"] = review_round + 1
+    
     return state
 
 def node_finalizer(state: ContractReviewState) -> ContractReviewState:
