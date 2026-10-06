@@ -7,8 +7,10 @@ database:
   path: "app/data/contracts.db"
 
 llm:
-  model: "gpt-4o-mini"
-  temperature: 0.3
+  provider: "ollama"
+  model: "llama3.2"
+  temperature: 0.1
+  base_url: "http://localhost:11434"
   use_llm: false
 
 embeddings:
