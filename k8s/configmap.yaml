@@ -14,7 +14,7 @@ data:
     llm:
       provider: "ollama"
       model: "llama3.2"
-      temperature: 0.3
+      temperature: 0.1
       base_url: "http://ollama:11434"
       use_llm: true
     embeddings:
