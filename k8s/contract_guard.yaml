@@ -21,7 +21,7 @@ data:
     llm:
       provider: "ollama"
       model: "qwen3:0.6b"
-      temperature: 0.3
+      temperature: 0.1
       base_url: "http://10.0.0.55:11434"
       use_llm: true
     embeddings:
@@ -90,7 +90,7 @@ spec:
             periodSeconds: 10
           readinessProbe:
             httpGet:
-              path: /health
+              path: /ready
               port: 8000
             initialDelaySeconds: 10
             periodSeconds: 5
