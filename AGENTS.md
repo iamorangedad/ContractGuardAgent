@@ -5,7 +5,7 @@
 
 ## 技术栈
 - 后端: FastAPI + SQLite
-- AI: LangChain + OpenAI
+- AI: LangChain + Ollama（可选 OpenAI）
 - 工作流: LangGraph
 - 前端: 原生 HTML/CSS/JS
 
@@ -17,7 +17,7 @@
 - [x] 安装 langchain-openai 依赖
 - [x] 创建 LLM 服务封装 (app/services/llm.py)
 - [x] 更新 nodes.py 使用 LLM 进行合同分析
-- [x] 配置环境变量 (OPENAI_API_KEY)
+- [x] 配置环境变量（USE_LLM / OPENAI_API_KEY，见 .env.example）
 
 #### 2. 任务数据持久化
 - [x] 创建 tasks 数据库表
@@ -34,7 +34,7 @@
 #### 4. 完善 RAG 实现
 - [x] 添加文本向量化处理
 - [x] 实现语义检索功能
-- [ ] 优化 playbook 规则匹配
+- [x] 优化 playbook 规则匹配
 
 #### 5. 前端功能完善
 - [x] 实现合同文件上传
@@ -50,7 +50,7 @@
 
 #### 7. 测试
 - [x] 添加单元测试
-- [ ] 添加集成测试
+- [x] 添加集成测试
 
 ## 验收标准
 
