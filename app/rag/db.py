@@ -1,13 +1,22 @@
 import os
 import sqlite3
+from pathlib import Path
 from typing import Optional
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
-DB_PATH = os.path.join(DATA_DIR, "contracts.db")
+# 测试可以改这个值。为 None 时使用 config.yaml / DATABASE_PATH。
+DB_PATH = None
 
 def get_db_path() -> str:
-    os.makedirs(DATA_DIR, exist_ok=True)
-    return DB_PATH
+    if DB_PATH:
+        path = Path(DB_PATH)
+    else:
+        from app.config import get_config
+        configured = get_config().get("database", {}).get("path", "app/data/contracts.db")
+        path = Path(configured)
+        if not path.is_absolute():
+            path = Path(__file__).resolve().parents[2] / path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return str(path)
 
 def init_db():
     db_path = get_db_path()
@@ -427,10 +436,16 @@ def get_task(task_id: str) -> Optional[dict]:
         return None
     
     task = dict(row)
-    task["differences"] = json.loads(task.get("differences", "[]"))
-    task["evaluations"] = json.loads(task.get("evaluations", "[]"))
-    task["human_reviews"] = json.loads(task.get("human_reviews", "[]"))
+    task["differences"] = _load_json_list(task.get("differences"))
+    task["evaluations"] = _load_json_list(task.get("evaluations"))
+    task["human_reviews"] = _load_json_list(task.get("human_reviews"))
     return task
+
+
+def _load_json_list(value) -> list:
+    if not value:
+        return []
+    return json.loads(value)
 
 def update_task_status(task_id: str, status: str, **kwargs) -> None:
     db_path = get_db_path()
