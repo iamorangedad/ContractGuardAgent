@@ -70,7 +70,7 @@ def test_node_evaluator_with_rules():
         "original_text": "",
         "modified_text": "预付款30%",
         "category": "采购",
-        "retrieved_templates": [],
+        "retrieved_templates": [{"title": "标准采购合同模板", "category": "采购", "content": "预付款不超过30%"}],
         "playbook_rules": playbook_rules,
         "differences": [
             {
@@ -91,3 +91,36 @@ def test_node_evaluator_with_rules():
     
     assert len(result["evaluations"]) > 0
     assert result["evaluations"][0]["matched_rule"] is not None
+    assert "标准采购合同模板" in result["evaluations"][0]["explanation"]
+
+def test_chinese_risk_level_requests_human():
+    state = {
+        "task_id": "test",
+        "status": "in_progress",
+        "original_text": "",
+        "modified_text": "",
+        "category": "采购",
+        "retrieved_templates": [],
+        "playbook_rules": [{
+            "rule_name": "付款比例",
+            "description": "预付款过高",
+            "risk_level": "红色",
+            "action": "调低预付款",
+            "keywords": "预付款"
+        }],
+        "differences": [{
+            "original_section": "",
+            "modified_section": "预付款比例为50%",
+            "similarity": 0.0,
+            "change_type": "added"
+        }],
+        "evaluations": [],
+        "human_reviews": [],
+        "needs_human_review": False,
+        "final_report": None,
+        "error": None
+    }
+
+    result = node_evaluator(state)
+    assert result["evaluations"][0]["risk_level"] == "red"
+    assert result["needs_human_review"] is True
