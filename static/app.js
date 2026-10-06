@@ -174,9 +174,10 @@ async function updateTaskStatus(taskId) {
             statusText.textContent = '状态: ';
             statusMessage.textContent = status.message || '';
             
-            if (status.status === 'completed' || status.status === 'failed') {
+            if (status.status === 'completed' || status.status === 'failed' || status.status === 'waiting_human') {
                 clearInterval(pollInterval);
                 viewResultLink.href = '/compare?task_id=' + taskId;
+                viewResultLink.textContent = status.status === 'waiting_human' ? '去人工确认' : '查看详细结果';
                 viewResultLink.style.display = 'inline-block';
             }
             
@@ -244,9 +245,36 @@ function showResult(result) {
         showReviewForm(evaluations);
     }
     
+    const reportSection = document.getElementById('reportSection');
     if (result.final_report) {
         document.getElementById('finalReport').textContent = result.final_report;
+        if (reportSection) reportSection.style.display = 'block';
+    } else if (reportSection) {
+        reportSection.style.display = 'none';
     }
+}
+
+function escapeText(value) {
+    return value == null ? '' : String(value);
+}
+
+function labeledParagraph(label, value) {
+    const paragraph = document.createElement('p');
+    const strong = document.createElement('strong');
+    strong.textContent = label;
+    paragraph.append(strong, document.createTextNode(escapeText(value)));
+    return paragraph;
+}
+
+function radioLabel(id, value, text, checked) {
+    const label = document.createElement('label');
+    const input = document.createElement('input');
+    input.type = 'radio';
+    input.name = 'review_' + id;
+    input.value = value;
+    input.checked = checked;
+    label.append(input, document.createTextNode(' ' + text));
+    return label;
 }
 
 function showReviewForm(evaluations) {
@@ -260,31 +288,43 @@ function showReviewForm(evaluations) {
     reviewItems.innerHTML = '';
     
     needReview.forEach((item, index) => {
-        const diff = item.difference;
+        const diff = item.difference || {};
         const div = document.createElement('div');
         div.className = 'review-item ' + item.risk_level;
         
-        div.innerHTML = `
-            <div class="review-item-header">
-                <span class="review-item-title">${item.risk_level === 'red' ? '🔴 红色风险' : '🟡 需确认'}</span>
-                <span class="badge ${item.risk_level}">${item.risk_level}</span>
-            </div>
-            <div class="review-item-content">
-                <p><strong>说明：</strong>${item.explanation}</p>
-                <p><strong>建议：</strong>${item.suggestion}</p>
-                ${diff.original_section ? `<p><strong>原文：</strong>${diff.original_section.substring(0, 100)}...</p>` : ''}
-                ${diff.modified_section ? `<p><strong>修改为：</strong>${diff.modified_section.substring(0, 100)}...</p>` : ''}
-            </div>
-            <div class="review-item-actions">
-                <label>
-                    <input type="radio" name="review_${item.id}" value="approved" checked> 批准
-                </label>
-                <label>
-                    <input type="radio" name="review_${item.id}" value="rejected"> 拒绝
-                </label>
-            </div>
-            <textarea name="comment_${item.id}" placeholder="填写审核意见（可选）" rows="2"></textarea>
-        `;
+        const title = document.createElement('div');
+        title.className = 'review-item-header';
+        const titleText = document.createElement('span');
+        titleText.className = 'review-item-title';
+        titleText.textContent = item.risk_level === 'red' ? '红色风险' : '需确认';
+        const badge = document.createElement('span');
+        badge.className = 'badge ' + item.risk_level;
+        badge.textContent = item.risk_level;
+        title.append(titleText, badge);
+
+        const content = document.createElement('div');
+        content.className = 'review-item-content';
+        content.append(
+            labeledParagraph('说明：', item.explanation),
+            labeledParagraph('建议：', item.suggestion)
+        );
+        if (diff.original_section) {
+            content.append(labeledParagraph('原文：', diff.original_section.slice(0, 100)));
+        }
+        if (diff.modified_section) {
+            content.append(labeledParagraph('修改为：', diff.modified_section.slice(0, 100)));
+        }
+
+        const actions = document.createElement('div');
+        actions.className = 'review-item-actions';
+        actions.append(radioLabel(item.id, 'approved', '批准', true), radioLabel(item.id, 'rejected', '拒绝', false));
+
+        const comment = document.createElement('textarea');
+        comment.name = 'comment_' + item.id;
+        comment.placeholder = '填写审核意见（可选）';
+        comment.rows = 2;
+
+        div.append(title, content, actions, comment);
         
         reviewItems.appendChild(div);
     });
